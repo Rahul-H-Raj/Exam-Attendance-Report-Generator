@@ -1,0 +1,20 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div><h1 class="is-size-2 mb-4"><strong>Frame Extraction</strong></h1>
+    <div id="inputContainer" class="field">
+    <label for="intervalInput" class="label">Time Interval (seconds):</label>
+    <div class="control has-icons-left mb-4">
+      <input class="input is-large" type="number" id="intervalInput" min="1" value="10">
+      <span class="icon is-left">
+        <i class="fas fa-clock"></i>
+      </span>
+    </div>
+    <button id="extractFramesBtn" class="button is-large is-warning is-light mt-3" onclick="showFWidget()"><b>Extract Frames</b></button>
+  </div>
+  <div id="loadingIndicator">
+    <img id="loadingIndicatorImg" src="../static/loading2.gif" alt="Loading...">
+</div>
+    <div id="extractedFrames"></div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div id="loadingIndicator" class="active">
+    <!-- Loading GIF -->
+    <img id="loadingIndicatorImg" src="{{ url_for('static', filename='loading.gif') }}" alt="Loading...">
+</div>
+
+<div id="resultMessage" style="display: none; font-family: 'Courier New', Courier, monospace; font-size: 30px; color: white;"></div><br><br>
+<a href="{{ url_for('main.classroom', classroom_no=classroom_no) }}">
+    <button class="button is-light">Let's Dive in!</button>
+</a>
+
+<script>
+    document.body.style.backgroundColor = '#000000';
+
+    // Function to animate the display of the message
+    function typeWriter(text, element) {
+        let i = 0;
+        function typing() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(typing, 100); // Adjust typing speed here
+            }
+        }
+        typing();
+    }
+
+    // Function to check the training status
+    function checkTrainingStatus() {
+        fetch('/training-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    const resultMessage = document.getElementById('resultMessage');
+                    resultMessage.style.display = 'block';
+                    typeWriter(data.message, resultMessage);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Function to start the training process
+    function startTraining() {
+        console.log('Starting training process...');
+        fetch(`/start-training/{{ classroom_no }}`, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Training started, status:', data.status);
+            // Start polling for training status
+            const intervalId = setInterval(() => {
+                fetch('/training-status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            clearInterval(intervalId);
+                            document.getElementById('loadingIndicator').style.display = 'none';
+                            const resultMessage = document.getElementById('resultMessage');
+                            resultMessage.style.display = 'block';
+                            typeWriter(data.message, resultMessage);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }, 1000); // Poll every second
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Ensure the DOM is fully loaded before starting training
+    document.addEventListener('DOMContentLoaded', (event) => {
+        console.log('DOM fully loaded and parsed');
+        startTraining();
+    });
+</script>
+{% endblock %}

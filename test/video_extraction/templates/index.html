@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Frame Extraction</title>
+    <style>
+        body {
+            margin: 0; /* Remove default margin */
+            background-color: white; /* Initially set background color to white */
+        }
+
+        .image-container {
+            text-align: center; /* Center align the content */
+            margin: auto; /* Center horizontally */
+            margin-bottom: 20px; /* Add some margin at the bottom */
+        }
+
+        #loadingIndicator {
+            display: none; /* Initially hide the loading indicator */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black; /* Set background color to black */
+            z-index: 9999;
+            transition: opacity 1s, transform 1s, background-color 1s; /* Apply transition */
+        }
+
+        #loadingIndicator.active {
+            display: flex; /* Show the loading indicator */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 1; /* Show loading indicator */
+            transform: translateY(0); /* Move loading indicator to top */
+            background-color: rgba(0, 0, 0, 0.7); /* Set background color to semi-transparent black */
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Frame Extraction</h1>
+    <div id="inputContainer">
+        <label for="intervalInput">Time Interval (seconds): </label>
+        <input type="number" id="intervalInput" min="1" value="10">
+        <button id="extractFramesBtn">Extract Frames</button>
+    </div>
+    <div id="loadingIndicator">
+        <img src="static/loading.gif" alt="Loading...">
+        <p>Running...</p>
+    </div>
+    <div id="extractedFrames"></div>
+
+    <script>
+        // Function to extract frames when the button is clicked
+        document.getElementById('extractFramesBtn').addEventListener('click', function() {
+            // Hide input and button
+            document.getElementById('inputContainer').style.display = 'none';
+            // Show loading indicator
+            document.getElementById('loadingIndicator').classList.add('active');
+            // Change background color to black
+            document.body.style.backgroundColor = 'black';
+
+            // Get the time interval from the input field
+            var interval = document.getElementById('intervalInput').value;
+
+            // Send a POST request to the Flask route to extract frames
+            fetch('/extract_frames', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'interval=' + interval
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the extracted frames in the HTML
+                const extractedFramesDiv = document.getElementById('extractedFrames');
+                extractedFramesDiv.innerHTML = ''; // Clear previous frames
+
+                // Add "Extraction has Started!" text
+                const extractionStartedText = document.createElement('p');
+                extractionStartedText.textContent = 'Extraction has Started!';
+                extractedFramesDiv.appendChild(extractionStartedText);
+
+                data.forEach(frame => {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = 'static/frame_' + frame.index + '.jpg'; // Construct image source dynamically
+                    imgElement.width = 755; // Set width
+                    imgElement.height = 425; // Set height
+
+                    const timeElement = document.createElement('p');
+                    timeElement.textContent = 'Extraction Time: ' + frame.extraction_time;
+
+                    const containerDiv = document.createElement('div');
+                    containerDiv.classList.add('image-container'); // Add class for styling
+                    containerDiv.appendChild(imgElement);
+                    containerDiv.appendChild(timeElement);
+
+                    // Add a delay to display frames at the correct interval
+                    setTimeout(() => {
+                        extractedFramesDiv.appendChild(containerDiv);
+                    }, interval * 1000 * (frame.index + 1));
+                });
+
+                // Hide loading indicator after the first frame is loaded
+                document.getElementById('loadingIndicator').classList.remove('active');
+                // Change background color back to white
+                document.body.style.backgroundColor = 'white';
+            })
+            .catch(error => console.error('Error extracting frames:', error));
+        });
+    </script>
+</body>
+</html>

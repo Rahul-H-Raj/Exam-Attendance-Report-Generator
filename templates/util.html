@@ -1,0 +1,118 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div id="loadingIndicator" class="active">
+    <!-- Loading GIF -->
+    <img id="loadingIndicatorImg" src="../static/loading6.gif" alt="Loading...">
+</div>
+<div class="button-container" id="BtnSet">
+    <button class="spherical-button button is-dark" onclick="defineROIsForBenches('{{ classroom_no }}')"><strong>Define ROIs</strong></button>
+    <button class="spherical-button button is-dark" onclick="showRegions('{{ classroom_no }}')">Show Regions</button>
+    <a href="{{ url_for('main.trainner', classroom_no=classroom_no) }}">
+        <button class="spherical-button button is-dark" onclick="trainModel('{{ classroom_no }}')">Train</button>
+    </a>
+</div>
+
+<script>
+    function showROIWidget(classroom_no) {
+        // Show the ROI widget
+        document.getElementById('roiWidget').style.display = 'block';
+        // Set the classroom number in the widget
+        document.getElementById('classroom_no').value = classroom_no;
+    }
+
+    function hideROIModal() {
+        document.getElementById('roiWidget').style.display = 'none';
+    }
+
+    // Function to define ROIs for benches
+    function defineROIsForBenches(classroom_no) {
+        // Show the widget for defining ROIs
+        showROIWidget(classroom_no);
+    }
+
+    function consistencyCheck(classroom_no) {
+        fetch('/consistency_check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ classroom_no: classroom_no })
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert(data); // Display the response message as an alert
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+    function defineROIsForBench(classroom_no) {
+        var benchNumber = document.getElementById('benchNumberInput').value.trim() || -1; // If no input, set bench number to -1
+        fetch('/define_rois', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ classroom_no: classroom_no, bench_number: benchNumber })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            // Handle the response data if necessary
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Function to show regions
+    function showRegions(classroom_no) {
+        fetch('/show_regions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ classroom_no: classroom_no })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            // Handle the response data if necessary
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    // // Function to train model
+    // function trainModel(classroom_no) {
+    //     fetch('/train_model', {
+    //         method: 'POST',
+    //         headers: {
+    //             'Content-Type': 'application/json'
+    //         },
+    //         body: JSON.stringify({ classroom_no: classroom_no })
+    //     })
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         console.log('Success:', data);
+    //         // Handle the response data if necessary
+    //     })
+    //     .catch((error) => {
+    //         console.error('Error:', error);
+    //     });
+    // }
+
+    // Function to hide the loading indicator after 2 seconds
+    setTimeout(function() {
+        document.getElementById('loadingIndicator').classList.remove('active');
+        // Change background color back to white
+        document.body.style.backgroundColor = '#A93226';//'#6C3483';
+        document.getElementById('BtnSet').style.display = 'block';
+    }, 2000); // 2000 milliseconds = 2 seconds
+
+    document.getElementById('BtnSet').style.display = 'none';
+    document.body.style.backgroundColor = '#2E2E34';
+</script>
+{% endblock %}

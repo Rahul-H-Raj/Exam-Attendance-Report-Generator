@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EARG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+    <style>
+        .fade-in {
+            animation: fadeInAnimation ease 1s;
+            animation-iteration-count: 1;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes fadeInAnimation {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .navbar {
+            padding-top: 20px; /* Adjust the padding as needed */
+            padding-bottom: 20px;
+            background-color: white; /* Change background color to white */
+            color: black; /* Change text color to black */
+        }
+
+        .navbar-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .widget_btn {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body style="background-color: #87CEEB;">
+    <section class="hero is-fullheight">
+
+        <div class="hero-head" style="background-color: #fff;">
+            <nav class="navbar">
+                <div class="container">
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-start">
+                            <h1 class="title is-1 navbar-title">Classrooms</h1>
+                        </div>
+                        <div class="navbar-end">
+                            <div class="buttons">
+                                <div class="navbar-item">
+                                    <div class="field is-grouped">
+                                        <p class="control">
+                                            <button class="button is-primary" onclick="showWidget()">Add Classroom</button>
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if current_user.is_authenticated %}
+                                <a href="#" class="navbar-item button is-danger" onclick="confirmLogout()">
+                                    Logout
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('main.redirect_to_streamlit') }}" class="navbar-item button is-dark">
+                                    <img src="static/icon/recon.gif">
+                                </a>                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="hero-body">
+            <div class="container has-text-centered fade-in">
+                <div class="columns is-centered is-multiline">
+                    {% for classroom in classrooms %}
+                    <div class="column is-3">
+                        <div class="box" style="height: 120px; width: 300px;">
+                            <p class="is-size-3"><strong>{{ classroom.classroom_no }}</strong></p>
+                            <a href="{{ url_for('main.classroom', classroom_no=classroom.classroom_no) }}" class="navbar-item button is-link">
+                                <i>Explore</i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add widget for adding classroom -->
+        <div id="widget" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <h2 class="subtitle">Add Classroom</h2>
+                    <div class="field">
+                        <label class="label">Classroom Number</label>
+                        <div class="control">
+                            <input id="classroom_no" class="input" type="text" placeholder="Enter Classroom Number">
+                        </div>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button id="save_button" class="button is-primary widget_btn" onclick="saveClassroom()">Save</button>
+                        </div>
+                        <div class="control">
+                            <button class="button widget_btn" onclick="hideWidget()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close" onclick="hideWidget()"></button>
+        </div>
+        <!-- Logout confirmation widget -->
+        <div id="logoutWidget" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <h2 class="subtitle has-text-danger-dark">Logout</h2>
+                    <p>Are you sure you want to logout?</p>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-danger widget_btn" onclick="logout()">Leave</button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-primary widget_btn" onclick="hideLogoutWidget()">Stay</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close" onclick="hideLogoutWidget()"></button>
+        </div>
+    </section>
+
+    <script>
+        function showWidget() {
+            document.getElementById('widget').classList.add('is-active');
+        }
+
+        function hideWidget() {
+            document.getElementById('widget').classList.remove('is-active');
+        }
+
+        function saveClassroom() {
+            var classroom_no = document.getElementById('classroom_no').value;
+            // Send an AJAX request to the server to save the classroom number
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/save_classroom", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Parse the JSON response
+                        var response = JSON.parse(xhr.responseText);
+                        // Display the message in an alert
+                        alert(response.message);
+                        // Reload the page
+                        window.location.reload();
+                        // Hide the widget after saving
+                        hideWidget();
+                    } else {
+                        // Handle error cases here
+                        alert("Error: " + xhr.statusText);
+                    }
+                }
+            };
+            var data = JSON.stringify({ classroom_no: classroom_no });
+            xhr.send(data);
+        }
+
+        function confirmLogout() {
+            document.getElementById('logoutWidget').classList.add('is-active');
+        }
+
+        function hideLogoutWidget() {
+            document.getElementById('logoutWidget').classList.remove('is-active');
+        }
+
+        function logout() {
+            // Perform logout action here
+            window.location.href = "{{ url_for('auth.logout') }}";
+        }
+
+    </script>
+</body>
+
+</html>

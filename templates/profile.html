@@ -4,4 +4,11 @@
 <h1 class="title">
     Welcome, {{name}}!
 </h1>
+
+<script>
+    // Redirect to /redirect-home after a delay of one second
+    setTimeout(function() {
+        window.location.href = '/redirect-home'; // Redirect to the redirect-home route
+    }, 1000); // 1000 milliseconds = 1 second
+</script>
 {% endblock %}

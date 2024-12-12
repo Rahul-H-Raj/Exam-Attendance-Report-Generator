@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ classroom_no }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
+    <style>
+        .navbar {
+            padding-top: 10px; /* Adjust the padding as needed */
+            background-color: white; /* Change background color to white */
+            color: black; /* Change text color to black */
+        }
+
+        .button-container {
+        text-align: center;
+        }
+
+        .spherical-button {
+        width: 250px;
+        height: 150px;
+        border: none;
+        border-radius: 30px;
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.1); /* Add shadow effect */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin: 0 50px; /* Add margin to create gap between buttons */
+        }
+
+        .spherical-button:first-child {
+        margin-left: 0;
+        }
+
+        .spherical-button:last-child {
+        margin-right: 0;
+        }
+
+        .spherical-button:hover {
+        transform: translateY(2px);
+        box-shadow: 0px 12px 20px rgba(0, 0, 0, 0.2); /* Increase shadow on hover */
+        }
+
+
+
+
+        .navbar-title {
+            font-size: 24px;
+        }
+
+        #intervalInput {
+            text-align: center; /* Center-align the text */
+        }
+
+        .image-container {
+            text-align: center; /* Center align the content */
+            margin: auto; /* Center horizontally */
+            margin-bottom: 20px; /* Add some margin at the bottom */
+        }
+
+        #loadingIndicator {
+            display: none; /* Initially hide the loading indicator */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black; /* Set background color to black */
+            z-index: 9999;
+            transition: opacity 1s, transform 1s, background-color 1s; /* Apply transition */
+        }
+
+        #loadingIndicator.active {
+            display: flex; /* Show the loading indicator */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 1; /* Show loading indicator */
+            transform: translateY(0); /* Move loading indicator to top */
+            background-color: rgba(0, 0, 0, 0.7); /* Set background color to semi-transparent black */
+        }
+
+        /* Hide the widget by default */
+        #widget {
+            display: none;
+        }
+
+        #widget_btn {
+            margin-top: 20px;
+        }
+
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+        }
+
+        td,
+        th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+    </style>
+</head>
+
+<body style="background-color: #FFEBCD;">
+    <section class="hero is-fullheight">
+
+        <div class="hero-head" style="background-color: #fff;">
+            <nav class="navbar">
+                <div class="container">
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-start">
+                            <h1 class="title is-1 navbar-title"><i>Class</i> <strong><b>{{ classroom_no }}</b></strong></h1>
+                            <div class="buttons">
+                            </div>
+                        </div>
+                        <div class="navbar-end">
+                            <div class="buttons">
+                                <a href="{{ url_for('main.home') }}" class="navbar-item button is-info" onclick="clearSessionStorage()">
+                                    Switch Classroom
+                                </a>
+                                <a href="{{ url_for('main.util', classroom_no=classroom_no) }}" class="navbar-item button is-ghost" id="calibrateBtn">
+                                    Caliberate
+                                </a>
+                                <a href="{{ url_for('main.sheet', classroom_no=classroom_no) }}" class="navbar-item button is-warning" id="attendance_sheet_btn">
+                                    Attendance Sheet
+                                </a>
+                                <a class="navbar-item button is-primary" id="generate_report_btn"  onclick="generateReport('{{ classroom_no }}')">
+                                    Generate Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="hero-body">
+            <div class="container has-text-centered fade-in">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Widget for displaying reminder -->
+        <div id="widget" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <h2 class="subtitle has-text-danger">Reminder</h2>
+                    <p>Kindly ensure to click the <strong>"Calibrate"</strong> button to verify the proper detection and identification of all benches. This step is crucial prior to the commencement of the examination to ensure that all benches are correctly aligned for detection.</p>
+                    <button id="widget_btn" class="button is-primary" onclick="hideWidget()">Ok</button>
+                </div>
+            </div>
+        </div>
+        <div id="fwidget" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <h2 class="subtitle has-text-info"><b>Number</b> of <b>Frames</b> to <b>Extract</b></h2>
+                    <p>The admin can set the desired number of frames to be extracted from the CCTV footage at regular intervals specified in seconds.<br><b>Note</b>: By default, this is set to <b>4</b> frames.</p><br>
+                    <input type="text" id="frameNumber" placeholder="No. of frames"><br><br>
+                    <button id="widget_btn" class="button is-link" onclick="extract_frames()">Start</button>
+                </div>
+            </div>
+        </div>
+        <!-- Add widget for defining ROIs -->
+        <div id="roiWidget" class="modal" style="display:none;">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <h2 class="subtitle">Define ROIs</h2>
+                    <p><b>ROI</b>s, or <b>Regions of Interest</b>, involve outlining areas where benches are to be detected.Admins must manually mark each bench, prioritizing them by their numerical order.<br>To save the outlined regions, Press '<b>S</b>'.<br>To exit, Press '<b>Esc</b>'.</p><br>
+                    <label class="label">Consistency Check</label>
+                    <p>The consistency check ensures that all benches are correctly aligned and positioned according to previous seat distribution data.<br><b>Note</b>: This option is not relevant for the initial setup.</p>
+                    <button class="button is-warning is-dark" onclick="consistencyCheck('{{ classroom_no }}')"><strong>Check</strong></button><br><br>
+                    <label class="label">Specific Bench Number</label>
+                    <p>If adjustments are needed for the coordinates of a particular bench, the admin can utilize this option to modify or update them as necessary</p>
+                    <input type="text" id="benchNumberInput" placeholder="Enter Bench Number"><br><br>
+                    <button class="button is-primary" onclick="defineROIsForBench('{{ classroom_no }}')"><strong>Start</strong></button>
+                </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close" onclick="hideROIModal()"></button>
+        </div>
+
+    </section>
+
+    <!-- JavaScript to show the widget after a delay -->
+    <script>
+        // Function to show the widget after a delay
+        function showWidgetDelayed() {
+            // Check if the widget has been displayed before by checking a session storage variable
+            var widgetDisplayed = sessionStorage.getItem('widgetDisplayed');
+            
+            // If the widget hasn't been displayed before, show it after a delay
+            if (!widgetDisplayed) {
+                setTimeout(function() {
+                    document.getElementById('widget').style.display = 'block';
+                    // Set a session storage variable to indicate that the widget has been displayed
+                    sessionStorage.setItem('widgetDisplayed', true);
+                }, 1000); // Delay of 1 second (1000 milliseconds)
+            }
+        }
+
+        function showFWidget() {
+            // Show the ROI widget
+            document.getElementById('fwidget').style.display = 'block';
+        }
+
+
+        // Function to hide the widget
+        function hideWidget() {
+            document.getElementById('widget').style.display = 'none';
+            document.getElementById('fwidget').style.display = 'none';
+        }
+
+        function generateReport(classroom_no) {
+            var xhr = new XMLHttpRequest();
+            // Modify the URL to include the classroom number
+            xhr.open("GET", "/generate_report/" + classroom_no, true);
+            xhr.responseType = "arraybuffer"; // Set the response type to arraybuffer
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Create a Blob from the arraybuffer response
+                        var blob = new Blob([xhr.response], { type: "application/pdf" });
+                        // Create a URL for the Blob
+                        var url = window.URL.createObjectURL(blob);
+                        // Optional: Handle success response
+                        console.log("Report generated successfully");
+                        // Show a popup message
+                        alert("Attendance report generated successfully!");
+                        // Open the URL in a new tab after the alert is closed
+                        window.open(url);
+                    } else {
+                        // Optional: Handle error response
+                        console.error("Error generating report");
+                        // Show a popup message for error
+                        alert("Error generating attendance report. Please try again later.");
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        // Function to extract frames when the button is clicked
+        function extract_frames() {
+            hideWidget();
+            // Hide input and button
+            document.getElementById('inputContainer').style.display = 'none';
+            // Update the src attribute of the img tag inside the loading indicator
+            document.getElementById('loadingIndicatorImg').src = '../static/loading2.gif';
+            // Show loading indicator
+            document.getElementById('loadingIndicator').classList.add('active');
+            // Change background color to black
+            document.body.style.backgroundColor = 'black';
+
+            // Get the time interval from the input field
+            var interval = document.getElementById('intervalInput').value;
+            var no_of_frames = document.getElementById('frameNumber').value.trim() || 4;
+
+            // Send a POST request to the Flask route to extract frames
+            fetch('/extract_frames', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ interval: interval, no_of_frames: no_of_frames })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the extracted frames in the HTML
+                const extractedFramesDiv = document.getElementById('extractedFrames');
+                extractedFramesDiv.innerHTML = ''; // Clear previous frames
+
+                // Add "Extraction has Started!" text
+                const extractionStartedText = document.createElement('p');
+                extractionStartedText.textContent = 'Extraction has Started!';
+                extractedFramesDiv.appendChild(extractionStartedText);
+
+                data.forEach(frame => {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = '../static/frame_' + frame.index + '.jpg'; // Construct image source dynamically
+                    imgElement.width = 755; // Set width
+                    imgElement.height = 425; // Set height
+
+                    const timeElement = document.createElement('p');
+                    timeElement.textContent = 'Extraction Time: ' + frame.extraction_time;
+
+                    const containerDiv = document.createElement('div');
+                    containerDiv.classList.add('image-container'); // Add class for styling
+                    containerDiv.appendChild(imgElement);
+                    containerDiv.appendChild(timeElement);
+
+                    // Add a delay to display frames at the correct interval
+                    setTimeout(() => {
+                        extractedFramesDiv.appendChild(containerDiv);
+                        // Call the processImage function with the same interval
+                        processImage(imgElement.src, '{{ classroom_no }}');
+                        // Check if this is the last frame
+                        if (frame.index === data.length) {
+                            // Display alert message when extraction is complete after a delay of 2 seconds
+                            setTimeout(() => {
+                                alert("Extraction process finished successfully!");
+                            }, 1000);
+                        }
+                    }, interval * 1000 * (frame.index + 1));
+                });
+
+                // Hide loading indicator after the first frame is loaded
+                document.getElementById('loadingIndicator').classList.remove('active');
+                // Change background color back to white
+                document.body.style.backgroundColor = '#FFEBCD';
+            })
+            .catch(error => console.error('Error extracting frames:', error));
+        }
+
+        function processImage(imageSrc, classroom_no) {
+            // Extract the relative path starting from the "/static/" segment, omitting the leading slash
+            var staticIndex = imageSrc.indexOf("/static/");
+            var relativePath = imageSrc.substring(staticIndex + 1);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/process_image", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Optional: Handle success response
+                        console.log("Image processed successfully");
+                    } else {
+                        // Handle error cases here
+                        alert("Error: " + xhr.statusText);
+                    }
+                }
+            };
+            var data = JSON.stringify({ imageSrc: relativePath, classroom_no: classroom_no }); // Send relative path and classroom number
+            xhr.send(data);
+        }
+
+
+
+        // Function to clear session storage when navigating back to the home page
+        function clearSessionStorage() {
+            // Remove the session storage variable indicating that the widget has been displayed
+            sessionStorage.removeItem('widgetDisplayed');
+        }
+
+        // Call the function to show the widget after a delay when the page loads
+        window.onload = showWidgetDelayed;
+    </script>
+</body>
+
+</html>

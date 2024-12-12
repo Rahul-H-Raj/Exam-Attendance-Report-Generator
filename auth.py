@@ -1,6 +1,7 @@
 ########################################################################################
 ######################          Import packages      ###################################
 ########################################################################################
+import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import User
@@ -32,22 +33,36 @@ def login(): # define login page fucntion
         return redirect(url_for('main.profile'))
 
 @auth.route('/signup', methods=['GET', 'POST'])# we define the sign up path
-def signup(): # define the sign up function
-    if request.method=='GET': # If the request is GET we return the sign up page and forms
+def signup():
+    if request.method == 'GET':  # If the request is GET, return the signup page and forms
         return render_template('signup.html')
-    else: # if the request is POST, then we check if the email doesn't already exist and then we save data
+    else:  # If the request is POST, then check if the email doesn't already exist and then save data
         email = request.form.get('email')
         name = request.form.get('name')
         password = request.form.get('password')
-        user = User.query.filter_by(email=email).first() # if this returns a user, then the email already exists in database
-        if user: # if a user is found, we want to redirect back to signup page so user can try again
+
+        # Name validation
+        if not re.fullmatch(r'^[A-Za-z\s]{1,50}$', name):
+            flash('Name must contain only alphabetic characters and spaces, and be between 1 and 50 characters long.')
+            return redirect(url_for('auth.signup'))
+
+        # Password validation
+        if not re.fullmatch(r'^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$', password):
+            flash('Password must be at least 6 characters long, contain both letters and digits, and include at least one special symbol.')
+            return redirect(url_for('auth.signup'))
+
+        user = User.query.filter_by(email=email).first()  # If this returns a user, then the email already exists in the database
+        if user:  # If a user is found, redirect back to the signup page so the user can try again
             flash('Email address already exists')
             return redirect(url_for('auth.signup'))
-        # create a new user with the form data. Hash the password so the plaintext version isn't saved.
-        new_user = User(email=email, name=name, password=generate_password_hash(password, method='sha256')) #
-        # add the new user to the database
+
+        # Create a new user with the form data. Hash the password so the plaintext version isn't saved.
+        new_user = User(email=email, name=name, password=generate_password_hash(password, method='pbkdf2:sha256'))
+
+        # Add the new user to the database
         db.session.add(new_user)
         db.session.commit()
+
         return redirect(url_for('auth.login'))
 
 @auth.route('/logout') # define logout path

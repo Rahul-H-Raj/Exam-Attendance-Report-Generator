@@ -1,0 +1,9 @@
+{% extends "main.html" %}
+
+{% block content %}
+<h1 class="is-size-4"><strong>Exam Seat Arrangement</strong></h1>
+{{ table|safe }} <!-- Use safe filter to render HTML -->
+<script>
+    document.body.style.backgroundColor = '#D2B48C'
+</script>
+{% endblock %}
